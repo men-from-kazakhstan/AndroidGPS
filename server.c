@@ -8,6 +8,7 @@
 *******************************************************************************/
 
 #include <stdio.h>
+#include <ctype.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -21,6 +22,9 @@
 #define BUFLEN 256          // Size of buffer to hold client messages
 #define PATH_SIZE 64
 #define DEFAULT_PORT 5150   // Default port value
+#define DEFAULT_PATH "~/data"
+
+char filepath[PATH_SIZE];
 
 /* Function prototypes */
 void runServer(int port);
@@ -59,13 +63,31 @@ int main (int argc, char **argv) {
     switch (argc) {
         case 1:
             port = DEFAULT_PORT;
+            strcpy(filepath, DEFAULT_PATH);
             break;
         case 2:
-            port = atoi(argv[1]);
+            for (char *p = argv[1]; *p != '\0'; p++) {
+                if (isdigit(*p)) {
+                    fprintf(stderr, "Error: %s usage [path] [port]\n", argv[0]);
+                    exit(1);
+                }
+            }
+            strcpy(filepath, argv[1]);
+            port = DEFAULT_PORT;
+            break;
+        case 3:
+            for (char *p = argv[1]; *p != '\0'; p++) {
+                if (isdigit(*p)) {
+                    fprintf(stderr, "Error: %s usage [path] [port]\n", argv[0]);
+                    exit(1);
+                }
+            }
+            strcpy(filepath, argv[1]);
+            port = atoi(argv[2]);
             break;
         default:
-            fprintf(stderr, "Error: %s usage [port]\n", argv[0]);
-            break;
+            fprintf(stderr, "Error: %s usage [path] [port]\n", argv[0]);
+            exit(1);
     }
 
     runServer(port);
@@ -302,19 +324,18 @@ void closeSocket(int sck, fd_set *allset, int *clients, int index) {
  *      to it.  Change the value of *dir if you want to change the file path.
  ******************************************************************************/
 void writeData(const char *msg) {
-    const char *dir = "/var/www/data";  //directory to write to
     const char *file = "/gpsData.txt";  //file to write to
     char path[PATH_SIZE];               //full file path
     struct stat st = {0};
 
     // Check to see if directory exists
-    if (stat(dir, &st) == -1) {
-        // Make directory with read/write permissions
-        if (mkdir(dir, 0666) < 0)
+    if (stat(filepath, &st) == -1) {
+        // Make directory with full permissions
+        if (mkdir(filepath, 0777) < 0)
             fprintf(stderr, "mkdir() failed: %s\n", strerror(errno));
     }
 
-    sprintf(path, "%s%s", dir, file);
+    sprintf(path, "%s%s", filepath, file);
 
     FILE *fp;
     fp = fopen(path, "ab");
