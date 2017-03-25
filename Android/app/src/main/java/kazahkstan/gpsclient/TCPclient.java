@@ -85,14 +85,16 @@ public class TCPclient {
             serverAddr = InetAddress.getByName(IP);
         } catch (UnknownHostException e) {
             Log.e("TCPclient","UnknownHost");
+            locationManager.removeUpdates(locationListener);
             return;
         }
 
-        //atempt to connect
+        //attempt to connect
         try {
             client = new Socket(serverAddr,port);
         } catch (IOException e) {
             Log.e("TCPclient","SocketIOException");
+            locationManager.removeUpdates(locationListener);
             return;
         }
 

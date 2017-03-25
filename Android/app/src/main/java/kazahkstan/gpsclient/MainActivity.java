@@ -151,7 +151,7 @@ public class MainActivity extends AppCompatActivity {
 --  the connectTask to open the connection. While the connection is being set up,
 --  it makes a request to the location manager to start listening for GPS updates
 -----------------------------------------------------------------------------------*/
-    public void startConnection(View view) {
+    public void startConnections(View view) {
 
         ipAddress = ip.getText().toString();
         String portNum   = port.getText().toString();

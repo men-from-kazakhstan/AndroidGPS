@@ -22,15 +22,15 @@
         android:id="@+id/connectButton"
         android:layout_width="216dp"
         android:layout_height="48dp"
+        android:layout_below="@+id/ipBox"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="75dp"
         android:background="@android:color/darker_gray"
-        android:onClick="startConnection"
+        android:onClick="startConnections"
         android:text="Connect"
         android:textColor="@android:color/black"
         app:layout_constraintTop_toBottomOf="@+id/portBox"
-        tools:layout_editor_absoluteX="84dp"
-        android:layout_below="@+id/ipBox"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="75dp" />
+        tools:layout_editor_absoluteX="84dp" />
 
     <EditText
         android:id="@+id/ipBox"
