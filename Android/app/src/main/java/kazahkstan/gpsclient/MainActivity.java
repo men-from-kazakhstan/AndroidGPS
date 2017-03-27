@@ -196,7 +196,7 @@ public class MainActivity extends AppCompatActivity {
 -----------------------------------------------------------------------------------*/
     protected void getData(Location location) {
         String gpsData = localIP + " " + location.getLatitude() + " " + location.getLongitude();
-    if (tcp != null)
+    if (tcp.gpsON != false)
         try {
             sendData(gpsData);
         } catch (IOException e) {
