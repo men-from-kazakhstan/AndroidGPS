@@ -44,6 +44,7 @@ import android.widget.Toast;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 
 
@@ -253,9 +254,8 @@ public String utcToString(long time) {
 --  is unusable for whatever reason.
 -----------------------------------------------------------------------------------*/
     protected void sendData(String data) throws IOException {
-        OutputStream outToServer = tcp.client.getOutputStream();
-        DataOutputStream out = new DataOutputStream (outToServer);
-        out.writeUTF(data);
+        PrintWriter out = new PrintWriter(tcp.client.getOutputStream(),true);
+        out.println(data);
     }
 
 /*---------------------------------------------------------------------------------
