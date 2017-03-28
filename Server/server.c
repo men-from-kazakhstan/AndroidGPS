@@ -17,7 +17,6 @@
 #include <errno.h>
 
 #define BUFLEN 256           // Size of buffer to hold client messages
-#define PATH_SIZE 64
 #define DEFAULT_PORT 25150   // Default port value
 
 /* Function prototypes */
@@ -236,11 +235,11 @@ void readSockets(int numClients, int *clients, fd_set *rset, fd_set *allset) {
     char msg[BUFLEN];   // Buffer to hold the message
     int sockfd;         // Client socket
     int bytesRead;      // Number of bytes read
-    char *cTime;
-    char *name;
-    char *ip;
-    char *lat;
-    char *lng;
+    char *cTime;        // Client timestamp
+    char *name;         // Client name
+    char *ip;           // Client IP
+    char *lat;          // Client latitude
+    char *lng;          // Client longitude
 
     //loop through all possible clients
     for (int i = 0; i <= numClients; i++) {
@@ -251,6 +250,8 @@ void readSockets(int numClients, int *clients, fd_set *rset, fd_set *allset) {
 
         //check to see if current client is signaled
         if (FD_ISSET(sockfd, rset)) {
+            memset(msg, 0, sizeof(msg));
+
             //read message
             if ((bytesRead = readMsg(sockfd, msg)) < 0)
                 continue;
@@ -261,6 +262,7 @@ void readSockets(int numClients, int *clients, fd_set *rset, fd_set *allset) {
                 continue;
             }
 
+            // Parse the received message and separate by spaces
             cTime = strtok(msg, " ");
             ip = strtok(NULL, " ");
             name = strtok(NULL, " ");
@@ -296,6 +298,7 @@ void closeSocket(int sck, fd_set *allset, int *clients, int index) {
     if (close(sck) < 0) {
         fprintf(stderr, "close() failed: %s\n", strerror(errno));
     }
+
     FD_CLR(sck, allset);
     clients[index] = -1;
 }
@@ -318,24 +321,23 @@ void closeSocket(int sck, fd_set *allset, int *clients, int index) {
 void writeData(const char *cIP, const char *cLat, const char *cLong, const char *cName, const char *cTime) {
     const char *file = "../webapp/gpsData.json";  //file to write to
     FILE *fp;
-    char data[512];
+    char data[BUFLEN];
 
     if (access(file, F_OK) != -1) {
         // File exists
         fp = fopen(file, "r+b");
         sprintf(data, ",\n{\n\"ip\": \"%s\",\n\"lat\": %s,\n\"long\": %s,\n\"name\": \"%s\",\n\"time\": \"%s\"\n}\n]",
                 cIP, cLat, cLong, cName, cTime);
-        if ((fseek(fp, -1, SEEK_END)) < 0)
+        if ((fseek(fp, -1, SEEK_END)) < 0)  // Seek to replace the closing brace
             fprintf(stderr, "fseek failed :%s\n", strerror(errno));
-        fprintf(fp, data);
-        fclose(fp);
     } else {
         fp = fopen(file, "wb");
         sprintf(data, "[\n{\n\"ip\": \"%s\",\n\"lat\": %s,\n\"long\": %s,\n\"name\": \"%s\",\n\"time\": \"%s\"\n}\n]",
                 cIP, cLat, cLong, cName, cTime);
-        fprintf(fp, data);
-        fclose(fp);
     }
+
+    fprintf(fp, data);
+    fclose(fp);
 }
 
 /* Just wrapper functions below this point */
