@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+    <style>
+        /* Always set the map height explicitly to define the size of the div
+        * element that contains the map. */
+        #map {
+            height: 100%;
+        }
+        /* Optional: Makes the sample page fill the window. */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+    <head>
+        <h1>Map Tracker</h1>
+        <button onclick="processCoords()">Load data</button>
+        <!--<b>IP:</b> <span id="ip"></span><br>
+        <b>Lat:</b> <span id="lat"></span><br>
+        <b>Long:</b> <span id="long"></span><br>
+        <b>Name:</b> <span id="name"></span><br>
+        <b>Time:</b> <span id="time"></span><br>
+        <b>clients:</b> <span id="size"></span><br>
+        <b>markers:</b> <span id="mrksize"></span><br>-->
+    </head>
+    <body>
+    <div id="map"></div>
+        <script>
+
+        var counter = 0;
+        var xmlhttp, xmlDoc;
+        var map;
+        var markerCoords = {lat: 49.2057, lng: -122.9110};
+        var polylineCoords = [];
+        var tmpObject;
+        var clientPath;
+
+        var clientList = []; // holds client objects
+        var dataAmount = 0; // the total number of objects in
+        var prevDataAmount = 0; // previous amouunt of data read
+        var clientMarkers = [];
+        var clientPaths = [];
+        var infoList = [];
+
+
+
+        function processCoords()
+        {
+            setInterval(process, 5000);
+        }
+
+        function display()
+        {
+            for(var i = 0; i < clientMarkers.length; i++)
+            {
+                clientMarkers[i].setPosition(clientList[i].currCoords);
+                clientMarkers[i].setTitle("IP: " + clientList[i].ip + "\nName: " + clientList[i].name + "\nLat: " +  clientList[i].currCoords.lat + "\nLong: " + clientList[i].currCoords.lng + "\nTime: " +  clientList[i].time);
+                clientPaths[i].setPath(clientList[i].coords);
+            }
+        }
+
+
+        function storeData(data)
+        {
+            //alert(data.length);
+            // store
+            for(var i = prevDataAmount; i < data.length; i++)
+            {
+                // check if this is the first client
+                if(clientList.length == 0)
+                {
+                    var tmpClient = // create new client object
+                    {
+                        ip: data[i].ip,
+                        currCoords: {lat: data[i].lat, lng: data[i].long},
+                        coords: [{lat: data[i].lat, lng: data[i].long}],
+                        name: data[i].name,
+                        time: data[i].time
+                    };
+                    clientList.push(tmpClient); // add client to array
+
+                    var marker = new google.maps.Marker({
+                        map: map,
+                        title: "IP: " + data[i].ip + "\nName: " + data[i].name + "\nLat: " +  data[i].lat + "\nLong: " + data[i].long + "\nTime: " + data[i].time
+                    });
+
+                    var pathway = new google.maps.Polyline({
+                        path: polylineCoords,
+                        geodesic: true,
+                        strokeColor: '#FF0000',
+                        strokeOpacity: 1.0,
+                        strokeWeight: 2,
+                        map: map
+                    });
+
+                    clientMarkers.push(marker);
+                    clientPaths.push(pathway);
+                    display();
+                }
+                else
+                {
+                    for(var j = 0; j < clientList.length; j++)
+                    {
+                        if(clientList[j].name == data[i].name) // update existing clients
+                        {
+                            tmpCoords = {lat: data[i].lat, lng: data[i].long};
+                            clientList[j].currCoords.lat = data[i].lat;
+                            clientList[j].currCoords.lng = data[i].long;
+                            clientList[j].coords.push(tmpCoords);
+                            clientList[j].time = data[i].time;
+                            display();
+                            break;
+                        }
+                        if(j == clientList.length-1) // create a new client
+                        {
+                            var tmpClient = // create new client object
+                            {
+                                ip: data[i].ip,
+                                currCoords: {lat: data[i].lat, lng: data[i].long},
+                                coords: [{lat: data[i].lat, lng: data[i].long}],
+                                name: data[i].name,
+                                time: data[i].time
+                            };
+
+                            clientList.push(tmpClient); // add client to array
+
+                            var marker = new google.maps.Marker({
+                                map: map,
+                                title: "IP: " + data[i].ip + "\nName: " + data[i].name + "\nLat: " +  data[i].lat + "\nLong: " + data[i].long + "\nTime: " + data[i].time
+                            });
+
+                            var pathway = new google.maps.Polyline({
+                                path: polylineCoords,
+                                geodesic: true,
+                                strokeColor: '#FF0000',
+                                strokeOpacity: 1.0,
+                                strokeWeight: 2,
+                                map: map
+                            });
+
+                            clientMarkers.push(marker);
+                            clientPaths.push(pathway);
+                            display();
+                        }
+                    }
+                }
+            }
+            prevDataAmount = dataAmount; // update point of data to start reading at
+        }
+
+
+        function process()
+        {
+            var xmlhttp = new XMLHttpRequest();
+            xmlhttp.onreadystatechange = function()
+            {   // parse
+                var exists = 1;
+                if (this.readyState == 4 && this.status == 200) {
+                    data = JSON.parse(this.responseText);
+
+                    // check for new data
+                    if(data.length > dataAmount)
+                    {
+                        dataAmount = data.length;
+                        storeData(data);
+                        //clientPath.setPath(clientList[0].coords);
+                    }
+                    /**
+                    document.getElementById("ip").innerHTML = clientList[0].ip;
+                    document.getElementById("lat").innerHTML = clientList[0].currCoords.lat;
+                    document.getElementById("long").innerHTML = clientList[0].currCoords.lng;
+                    document.getElementById("name").innerHTML = clientList[0].name;
+                    document.getElementById("time").innerHTML = clientList[0].time;
+                    document.getElementById("size").innerHTML = clientList.length;
+                    document.getElementById("mrksize").innerHTML = clientMarkers.length;*/
+                }
+            };
+
+            xmlhttp.open("GET", "gpsData.json", true);
+            xmlhttp.send();
+        }
+
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 10,
+                center: {lat: 49.2057, lng: -122.9110},
+                mapTypeId: 'roadmap'
+            });
+        }
+        </script>
+        <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBQriEVBFXmPCssHmGyLAQCxEqwFPRs3fY&callback=initMap" async defer></script>
+
+    </body>
+</html>
