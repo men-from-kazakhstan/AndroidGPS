@@ -225,8 +225,7 @@ public String utcToString(long time) {
 -----------------------------------------------------------------------------------*/
     protected void getData(Location location) {
         String timestamp = utcToString(location.getTime());
-        String gpsData = timestamp + " " + localIP + " " + deviceName + " " + location.getLatitude() + " " + location.getLongitude();
-//        Toast.makeText(this,gpsData,Toast.LENGTH_LONG).show();
+        String gpsData = timestamp + "," + localIP + "," + deviceName + "," + location.getLatitude() + "," + location.getLongitude();
     if (tcp.gpsON != false)
         try {
             sendData(gpsData);

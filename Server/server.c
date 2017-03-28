@@ -263,11 +263,11 @@ void readSockets(int numClients, int *clients, fd_set *rset, fd_set *allset) {
             }
 
             // Parse the received message and separate by spaces
-            cTime = strtok(msg, " ");
-            ip = strtok(NULL, " ");
-            name = strtok(NULL, " ");
-            lat = strtok(NULL, " ");
-            lng = strtok(NULL, " ");
+            cTime = strtok(msg, ",");
+            ip = strtok(NULL, ",");
+            name = strtok(NULL, ",");
+            lat = strtok(NULL, ",");
+            lng = strtok(NULL, ",");
 
             // Write message to file
             writeData(ip, lat, lng, name, cTime);
