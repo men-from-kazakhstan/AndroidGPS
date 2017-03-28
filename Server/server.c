@@ -336,7 +336,7 @@ void writeData(const char *cIP, const char *cLat, const char *cLong, const char 
                 cIP, cLat, cLong, cName, cTime);
     }
 
-    fprintf(fp, data);
+    fprintf(fp, "%s", data);
     fclose(fp);
 }
 
