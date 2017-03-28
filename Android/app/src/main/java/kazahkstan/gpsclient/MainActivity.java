@@ -44,11 +44,12 @@ import android.widget.Toast;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
 
 
 public class MainActivity extends AppCompatActivity {
-    private static final int MIN_DELAY = 5000;  //the minimum amount of time to wait between updates in milliseconds
-    private static final int MIN_DISTANCE = 0; //the minimum distance that must be covered between updates in meteres
+    private static final int MIN_DELAY = 30000;  //the minimum amount of time to wait between updates in milliseconds
+    private static final int MIN_DISTANCE = 20; //the minimum distance that must be covered between updates in meteres
 
     EditText ip;
     EditText port;
@@ -92,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
 --  NOTES:
 --  The standard android onCreate method required in every activity. Has been modified
 --  to include the require permissions, define our input boxes, provide us with a
---  location manager and retreive our IP address
+--  location manager and retrieve our IP address
 -----------------------------------------------------------------------------------*/
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -122,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
 --  RETURNS:        a string containing the device's IP address in dotted decimal notation
 --
 --  NOTES:
---  A simple method that queries the systems wifi manager to retreive connection info, then
+--  A simple method that queries the systems wifi manager to retrieve connection info, then
 --  parses it to a human readable format.
 -----------------------------------------------------------------------------------*/
     public String getLocalIpAddress(){
@@ -148,7 +149,7 @@ public class MainActivity extends AppCompatActivity {
 --  RETURNS:        void
 --
 --  NOTES:
---  The callback function trigggered when connect is clicked. It parses out the text
+--  The callback function triggered when connect is clicked. It parses out the text
 --  entered by the user, and checks to make sure it's in the right format. It then starts
 --  the connectTask to open the connection. While the connection is being set up,
 --  it makes a request to the location manager to start listening for GPS updates
@@ -178,6 +179,31 @@ public class MainActivity extends AppCompatActivity {
     }
 
 /*---------------------------------------------------------------------------------
+--  FUNCTION:       utcToString
+--
+--  DATE:           March 27, 2017
+--
+--  DESIGNER:       Matt Goerwell
+--
+--  PROGRAMMER:     Matt Goerwell
+--
+--  INTERFACE:      String utcToString(long time)
+--                  time: the location returned by a GPS update
+--
+--  RETURNS:        a String representing the time in GMT
+--
+--  NOTES:
+--  This function exists to convert the time from utc format to something more human readable.
+-----------------------------------------------------------------------------------*/
+public String utcToString(long time) {
+
+    SimpleDateFormat sdf = new SimpleDateFormat("dd/MMM/yyyy-HH:mm:ss");
+    String timestamp = sdf.format(time);
+    return timestamp;
+}
+
+
+/*---------------------------------------------------------------------------------
 --  FUNCTION:       getData
 --
 --  DATE:           March 23, 2017
@@ -192,12 +218,14 @@ public class MainActivity extends AppCompatActivity {
 --  RETURNS:        void
 --
 --  NOTES:
---  The callback function trigggered when location updates. It translates the information
+--  The callback function triggered when location updates. It translates the information
 --  returned into the format requested by the server. It then checks to see if the
 --  socket has been set-up, before attempting to send the gps data to the server.
 -----------------------------------------------------------------------------------*/
     protected void getData(Location location) {
-        String gpsData =location.getTime() + " " + localIP + " " + deviceName + " " + location.getLatitude() + " " + location.getLongitude();
+        String timestamp = utcToString(location.getTime());
+        String gpsData = timestamp + " " + localIP + " " + deviceName + " " + location.getLatitude() + " " + location.getLongitude();
+//        Toast.makeText(this,gpsData,Toast.LENGTH_LONG).show();
     if (tcp.gpsON != false)
         try {
             sendData(gpsData);
@@ -222,7 +250,7 @@ public class MainActivity extends AppCompatActivity {
 --
 --  NOTES:
 --  The function which sends data to the server. It throws an IO exception if the socket
---  is unusable for whatever eason.
+--  is unusable for whatever reason.
 -----------------------------------------------------------------------------------*/
     protected void sendData(String data) throws IOException {
         OutputStream outToServer = tcp.client.getOutputStream();
@@ -246,8 +274,8 @@ public class MainActivity extends AppCompatActivity {
 --
 --  NOTES:
 --  A helper function required due to how android handles network requests. All network
---  requests must run on a seperate thread that is run in the bakground. The AsyncTask
---  template is the preferred method of acheiving this according to the doccumentation
+--  requests must run on a separate thread that is run in the background. The AsyncTask
+--  template is the preferred method of achieving this according to the documentation
 --  I have read. The only method within is one that simply starts its own thread with
 --  a specified class and method.
 -----------------------------------------------------------------------------------*/
