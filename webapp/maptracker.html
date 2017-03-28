@@ -1,12 +1,18 @@
+<!--
+|   This code is responsible for displaying the GPS coordinates of connected
+|   clients on Google Maps. A marker is set (per client) on the map displaying
+|   a clients most recent GPS coordinates. Clients past coordinates are stored
+|   and a line is draw from coordinate point to coordinate point showing a
+|   clients path
+-->
 <!DOCTYPE html>
 <html>
     <style>
-        /* Always set the map height explicitly to define the size of the div
-        * element that contains the map. */
+        /* Set the map height */
         #map {
             height: 100%;
         }
-        /* Optional: Makes the sample page fill the window. */
+        /* Make sample page fill the window. */
         html, body {
             height: 100%;
             margin: 0;
@@ -15,60 +21,88 @@
     </style>
     <head>
         <h1>Map Tracker</h1>
+        <!--button that starts loading data onto map -->
         <button onclick="processCoords()">Load data</button>
-        <!--<b>IP:</b> <span id="ip"></span><br>
-        <b>Lat:</b> <span id="lat"></span><br>
-        <b>Long:</b> <span id="long"></span><br>
-        <b>Name:</b> <span id="name"></span><br>
-        <b>Time:</b> <span id="time"></span><br>
-        <b>clients:</b> <span id="size"></span><br>
-        <b>markers:</b> <span id="mrksize"></span><br>-->
     </head>
     <body>
     <div id="map"></div>
         <script>
 
-        var counter = 0;
-        var xmlhttp, xmlDoc;
-        var map;
-        var markerCoords = {lat: 49.2057, lng: -122.9110};
-        var polylineCoords = [];
-        var tmpObject;
-        var clientPath;
-
+        var httpReq; // hold http request
+        var map; // to hold map objects
         var clientList = []; // holds client objects
         var dataAmount = 0; // the total number of objects in
         var prevDataAmount = 0; // previous amouunt of data read
-        var clientMarkers = [];
-        var clientPaths = [];
-        var infoList = [];
+        var clientMarkers = []; // array to hold markers
+        var clientPaths = []; // array to hold all coordinates
 
 
-
+        /********************************************************
+        |   Function:       processCoords()
+        |
+        |   Date:           March 23 2017
+        |
+        |   Programmer:     Alex Zielinski
+        |
+        |   Description:
+        |       This is the function that gets called when the
+        |       Load data button is clicked. The function
+        |       Process() is called every 15 seconds
+        ********************************************************/
         function processCoords()
         {
-            setInterval(process, 5000);
+            setInterval(process, 15000);
         }
 
+
+        /********************************************************
+        |   Function:      display()
+        |
+        |   Date:           March 27 2017
+        |
+        |   Programmer:     Alex Zielinski
+        |
+        |   Description:
+        |       Responsible for displaying the markers and polylines
+        |       for each client
+        ********************************************************/
         function display()
         {
-            for(var i = 0; i < clientMarkers.length; i++)
-            {
+            // iterate through clients. markers and paths
+            for (var i = 0; i < clientMarkers.length; i++)
+            {// set position of the clients marker
                 clientMarkers[i].setPosition(clientList[i].currCoords);
-                clientMarkers[i].setTitle("IP: " + clientList[i].ip + "\nName: " + clientList[i].name + "\nLat: " +  clientList[i].currCoords.lat + "\nLong: " + clientList[i].currCoords.lng + "\nTime: " +  clientList[i].time);
+
+                // set tooltip on client marker
+                clientMarkers[i].setTitle("IP: " + clientList[i].ip + "\nName: "
+                + clientList[i].name + "\nLat: " +  clientList[i].currCoords.lat
+                + "\nLong: " + clientList[i].currCoords.lng + "\nTime: "
+                +  clientList[i].time);
+
+                // set path of client
                 clientPaths[i].setPath(clientList[i].coords);
             }
         }
 
 
+        /********************************************************
+        |   Function:      storeData(data)
+        |                       data : Array of json objects to parse and store
+        |
+        |   Date:           March 27 2017
+        |
+        |   Programmer:     Alex Zielinski
+        |
+        |   Description:
+        |       Parses the json objects stored in the data array
+        |       and stores the info in a client object
+        ********************************************************/
         function storeData(data)
-        {
-            //alert(data.length);
-            // store
-            for(var i = prevDataAmount; i < data.length; i++)
+        {   // iterate through data (start at the point data was last read up to)
+            for (var i = prevDataAmount; i < data.length; i++)
             {
                 // check if this is the first client
-                if(clientList.length == 0)
+                if (clientList.length == 0)
                 {
                     var tmpClient = // create new client object
                     {
@@ -80,13 +114,16 @@
                     };
                     clientList.push(tmpClient); // add client to array
 
+                    // create a marker for the client
                     var marker = new google.maps.Marker({
                         map: map,
-                        title: "IP: " + data[i].ip + "\nName: " + data[i].name + "\nLat: " +  data[i].lat + "\nLong: " + data[i].long + "\nTime: " + data[i].time
+                        title: "IP: " + data[i].ip + "\nName: " + data[i].name +
+                        "\nLat: " +  data[i].lat + "\nLong: " + data[i].long +
+                        "\nTime: " + data[i].time
                     });
 
+                    // create a polyline for the client
                     var pathway = new google.maps.Polyline({
-                        path: polylineCoords,
                         geodesic: true,
                         strokeColor: '#FF0000',
                         strokeOpacity: 1.0,
@@ -94,27 +131,28 @@
                         map: map
                     });
 
-                    clientMarkers.push(marker);
-                    clientPaths.push(pathway);
+                    clientMarkers.push(marker); // add marker to array
+                    clientPaths.push(pathway); // add polyline to array
                     display();
                 }
-                else
-                {
-                    for(var j = 0; j < clientList.length; j++)
-                    {
-                        if(clientList[j].name == data[i].name) // update existing clients
+                else // not first client to be stored
+                {   // iterate through array of clients
+                    for (var j = 0; j < clientList.length; j++)
+                    {   // update an existing clients
+                        if (clientList[j].name == data[i].name)
                         {
                             tmpCoords = {lat: data[i].lat, lng: data[i].long};
                             clientList[j].currCoords.lat = data[i].lat;
                             clientList[j].currCoords.lng = data[i].long;
                             clientList[j].coords.push(tmpCoords);
                             clientList[j].time = data[i].time;
-                            display();
+                            display(); // display the new data
                             break;
                         }
-                        if(j == clientList.length-1) // create a new client
-                        {
-                            var tmpClient = // create new client object
+                        // client does not exist so make a new client
+                        if (j == clientList.length-1)
+                        {   // create new client object
+                            var tmpClient =
                             {
                                 ip: data[i].ip,
                                 currCoords: {lat: data[i].lat, lng: data[i].long},
@@ -122,16 +160,15 @@
                                 name: data[i].name,
                                 time: data[i].time
                             };
-
-                            clientList.push(tmpClient); // add client to array
-
+                            // add client to array
+                            clientList.push(tmpClient);
+                            // create a marker for client
                             var marker = new google.maps.Marker({
                                 map: map,
                                 title: "IP: " + data[i].ip + "\nName: " + data[i].name + "\nLat: " +  data[i].lat + "\nLong: " + data[i].long + "\nTime: " + data[i].time
                             });
-
+                            // create a polyline for the client
                             var pathway = new google.maps.Polyline({
-                                path: polylineCoords,
                                 geodesic: true,
                                 strokeColor: '#FF0000',
                                 strokeOpacity: 1.0,
@@ -139,50 +176,64 @@
                                 map: map
                             });
 
-                            clientMarkers.push(marker);
-                            clientPaths.push(pathway);
+                            clientMarkers.push(marker); // add marker to array
+                            clientPaths.push(pathway); // add polyline to array
                             display();
                         }
                     }
                 }
             }
-            prevDataAmount = dataAmount; // update point of data to start reading at
+             // update point of data to start reading from
+            prevDataAmount = dataAmount;
         }
 
-
+        /********************************************************
+        |   Function:      process()
+        |
+        |   Date:           March 27 2017
+        |
+        |   Programmer:     Alex Zielinski
+        |
+        |   Description:
+        |       Creates an httprequest to download a json file.
+        |       JSON file is parsed into an array. Then array
+        |       is sent to storeData function in order to extract
+        |       client coordinate and connection data.
+        ********************************************************/
         function process()
-        {
-            var xmlhttp = new XMLHttpRequest();
-            xmlhttp.onreadystatechange = function()
-            {   // parse
-                var exists = 1;
-                if (this.readyState == 4 && this.status == 200) {
+        {   // create a request
+            httpReq = new XMLHttpRequest();
+            httpReq.onreadystatechange = function()
+            {   // if file has been opened
+                if (this.readyState == 4 && this.status == 200)
+                {   // parse the json file and save as array
                     data = JSON.parse(this.responseText);
-
                     // check for new data
                     if(data.length > dataAmount)
                     {
                         dataAmount = data.length;
-                        storeData(data);
-                        //clientPath.setPath(clientList[0].coords);
+                        storeData(data); // new data found so store
                     }
-                    /**
-                    document.getElementById("ip").innerHTML = clientList[0].ip;
-                    document.getElementById("lat").innerHTML = clientList[0].currCoords.lat;
-                    document.getElementById("long").innerHTML = clientList[0].currCoords.lng;
-                    document.getElementById("name").innerHTML = clientList[0].name;
-                    document.getElementById("time").innerHTML = clientList[0].time;
-                    document.getElementById("size").innerHTML = clientList.length;
-                    document.getElementById("mrksize").innerHTML = clientMarkers.length;*/
                 }
             };
-
-            xmlhttp.open("GET", "gpsData.json", true);
-            xmlhttp.send();
+            // open the json file
+            httpReq.open("GET", "gpsData.json", true);
+            httpReq.send();
         }
 
 
-        function initMap() {
+        /********************************************************
+        |   Function:      process()
+        |
+        |   Date:           March 20 2017
+        |
+        |   Programmer:     Alex Zielinski
+        |
+        |   Description:
+        |       Used to initialize a Google map
+        ********************************************************/
+        function initMap()
+        {   // create a new map
             map = new google.maps.Map(document.getElementById('map'), {
                 zoom: 10,
                 center: {lat: 49.2057, lng: -122.9110},
