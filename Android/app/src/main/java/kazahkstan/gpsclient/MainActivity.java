@@ -56,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
     int servPort;
     LocationManager locationManager;
     String localIP;
+    String deviceName;
     TCPclient tcp;
 
     //prepare location listener for gps updates
@@ -104,6 +105,7 @@ public class MainActivity extends AppCompatActivity {
         port = (EditText) findViewById(R.id.portBox);
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         localIP = getLocalIpAddress();
+        deviceName = android.os.Build.MODEL;
     }
 
 /*---------------------------------------------------------------------------------
@@ -195,7 +197,7 @@ public class MainActivity extends AppCompatActivity {
 --  socket has been set-up, before attempting to send the gps data to the server.
 -----------------------------------------------------------------------------------*/
     protected void getData(Location location) {
-        String gpsData = localIP + " " + location.getLatitude() + " " + location.getLongitude();
+        String gpsData =location.getTime() + " " + localIP + " " + deviceName + " " + location.getLatitude() + " " + location.getLongitude();
     if (tcp.gpsON != false)
         try {
             sendData(gpsData);
