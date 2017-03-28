@@ -59,10 +59,6 @@ int main (int argc, char **argv) {
             break;
         case 2:
             port = atoi(argv[1]);
-            if (port < 20000) {
-                fprintf(stderr, "Port must be above 20,000");
-                exit(1);
-            }
             break;
         default:
             fprintf(stderr, "Error: %s usage [port]\n", argv[0]);
