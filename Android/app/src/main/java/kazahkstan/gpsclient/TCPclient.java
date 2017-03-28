@@ -15,8 +15,8 @@
 --
 --  NOTES:
 --  This is a sub-class created to handle the actual task of establishing a connection.
---  The class is requried due to android conventions preventing networking operations
---  from occuring on the main thread.
+--  The class is required due to android conventions preventing networking operations
+--  from occurring on the main thread.
 ----------------------------------------------------------------------------*/
 package kazahkstan.gpsclient;
 
