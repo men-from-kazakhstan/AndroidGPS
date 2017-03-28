@@ -2,9 +2,6 @@
  * Server for the GPS project.
  * Designed and programmed by: Robert Arendac
  * March 17 2017
- *
- * NOTE: To run succesfully, either run as admin (ie. sudo ./server) or chmod
- * the directory you want to make.
 *******************************************************************************/
 
 #include <stdio.h>
@@ -19,12 +16,8 @@
 #include <unistd.h>
 #include <errno.h>
 
-#define BUFLEN 256          // Size of buffer to hold client messages
-#define PATH_SIZE 64
-#define DEFAULT_PORT 5150   // Default port value
-#define DEFAULT_PATH "~/data"
-
-char filepath[PATH_SIZE];
+#define BUFLEN 256           // Size of buffer to hold client messages
+#define DEFAULT_PORT 25150   // Default port value
 
 /* Function prototypes */
 void runServer(int port);
@@ -32,7 +25,7 @@ struct sockaddr_in initAddress(int port);
 void monitorSockets(fd_set *rset, fd_set *aset, int listenSock, int *clients, int maxfd);
 void readSockets(int numClients, int *clients, fd_set *rset, fd_set *allset);
 void closeSocket(int sck, fd_set *allset, int *clients, int index);
-void writeData(const char *msg);
+void writeData(const char *cIP, const char *cLat, const char *cLong, const char *cName, const char *cTime);
 void setOpt(int socketfd);
 int createSocket();
 void bindSocket(int listenSock, struct sockaddr_in *addr);
@@ -63,30 +56,16 @@ int main (int argc, char **argv) {
     switch (argc) {
         case 1:
             port = DEFAULT_PORT;
-            strcpy(filepath, DEFAULT_PATH);
             break;
         case 2:
-            for (char *p = argv[1]; *p != '\0'; p++) {
-                if (isdigit(*p)) {
-                    fprintf(stderr, "Error: %s usage [path] [port]\n", argv[0]);
-                    exit(1);
-                }
+            port = atoi(argv[1]);
+            if (port < 20000) {
+                fprintf(stderr, "Port must be above 20,000");
+                exit(1);
             }
-            strcpy(filepath, argv[1]);
-            port = DEFAULT_PORT;
-            break;
-        case 3:
-            for (char *p = argv[1]; *p != '\0'; p++) {
-                if (isdigit(*p)) {
-                    fprintf(stderr, "Error: %s usage [path] [port]\n", argv[0]);
-                    exit(1);
-                }
-            }
-            strcpy(filepath, argv[1]);
-            port = atoi(argv[2]);
             break;
         default:
-            fprintf(stderr, "Error: %s usage [path] [port]\n", argv[0]);
+            fprintf(stderr, "Error: %s usage [port]\n", argv[0]);
             exit(1);
     }
 
@@ -256,6 +235,11 @@ void readSockets(int numClients, int *clients, fd_set *rset, fd_set *allset) {
     char msg[BUFLEN];   // Buffer to hold the message
     int sockfd;         // Client socket
     int bytesRead;      // Number of bytes read
+    char *cTime;        // Client timestamp
+    char *name;         // Client name
+    char *ip;           // Client IP
+    char *lat;          // Client latitude
+    char *lng;          // Client longitude
 
     //loop through all possible clients
     for (int i = 0; i <= numClients; i++) {
@@ -266,6 +250,8 @@ void readSockets(int numClients, int *clients, fd_set *rset, fd_set *allset) {
 
         //check to see if current client is signaled
         if (FD_ISSET(sockfd, rset)) {
+            memset(msg, 0, sizeof(msg));
+
             //read message
             if ((bytesRead = readMsg(sockfd, msg)) < 0)
                 continue;
@@ -276,8 +262,15 @@ void readSockets(int numClients, int *clients, fd_set *rset, fd_set *allset) {
                 continue;
             }
 
+            // Parse the received message and separate by spaces
+            cTime = strtok(msg, " ");
+            ip = strtok(NULL, " ");
+            name = strtok(NULL, " ");
+            lat = strtok(NULL, " ");
+            lng = strtok(NULL, " ");
+
             // Write message to file
-            writeData(msg);
+            writeData(ip, lat, lng, name, cTime);
         }
     }
 }
@@ -305,6 +298,7 @@ void closeSocket(int sck, fd_set *allset, int *clients, int index) {
     if (close(sck) < 0) {
         fprintf(stderr, "close() failed: %s\n", strerror(errno));
     }
+
     FD_CLR(sck, allset);
     clients[index] = -1;
 }
@@ -317,29 +311,32 @@ void closeSocket(int sck, fd_set *allset, int *clients, int index) {
  *
  *  Created:        Mar 17 2017
  *
- *  Modified:
+ *  Modified:       Mar 27 2017
+ *                      - Switched to creating JSON data.
  *
  *  Desc:
- *      Creates a path if it doesn't already exist and then writes the GPS data
- *      to it.  Change the value of *dir if you want to change the file path.
+ *      Checks for an existing file.  If it doesn't exist, will create a new JSON
+ *      object.  If it does exist, will append to the existing JSON object.
  ******************************************************************************/
-void writeData(const char *msg) {
-    const char *file = "/gpsData.txt";  //file to write to
-    char path[PATH_SIZE];               //full file path
-    struct stat st = {0};
+void writeData(const char *cIP, const char *cLat, const char *cLong, const char *cName, const char *cTime) {
+    const char *file = "../webapp/gpsData.json";  //file to write to
+    FILE *fp;
+    char data[BUFLEN];
 
-    // Check to see if directory exists
-    if (stat(filepath, &st) == -1) {
-        // Make directory with full permissions
-        if (mkdir(filepath, 0777) < 0)
-            fprintf(stderr, "mkdir() failed: %s\n", strerror(errno));
+    if (access(file, F_OK) != -1) {
+        // File exists
+        fp = fopen(file, "r+b");
+        sprintf(data, ",\n{\n\"ip\": \"%s\",\n\"lat\": %s,\n\"long\": %s,\n\"name\": \"%s\",\n\"time\": \"%s\"\n}\n]",
+                cIP, cLat, cLong, cName, cTime);
+        if ((fseek(fp, -1, SEEK_END)) < 0)  // Seek to replace the closing brace
+            fprintf(stderr, "fseek failed :%s\n", strerror(errno));
+    } else {
+        fp = fopen(file, "wb");
+        sprintf(data, "[\n{\n\"ip\": \"%s\",\n\"lat\": %s,\n\"long\": %s,\n\"name\": \"%s\",\n\"time\": \"%s\"\n}\n]",
+                cIP, cLat, cLong, cName, cTime);
     }
 
-    sprintf(path, "%s%s", filepath, file);
-
-    FILE *fp;
-    fp = fopen(path, "ab");
-    fprintf(fp, "%s\n", msg);
+    fprintf(fp, data);
     fclose(fp);
 }
 
